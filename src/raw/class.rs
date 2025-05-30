@@ -59,17 +59,181 @@ impl Class {
         let class_name = self.constant_pool[self.this_class as usize - 1]
             .name(&self.constant_pool)
             .expect("This class should be pointing to valid class name");
-        println!("class {class_name}");
-        println!("{{");
 
-        for method in &self.methods {
-            let mut name = self.constant_pool[method.name_index as usize - 1].utf8().expect("Method should be pointing to valid method name");
-            if name == "<init>" {
-                name = class_name.clone();
-            }
-            println!("  {name}()");
+        println!("this_class {class_name}");
+
+        for (i, constant) in self.constant_pool.iter().enumerate() {
+            print!("const {i:3} ");
+            dump_constant(&self.constant_pool, constant);
         }
 
-        println!("}}");
+        for method in &self.methods {
+            let method_name = self.constant_pool[method.name_index as usize - 1]
+                .utf8()
+                .expect("Method should be pointing to valid method name");
+            println!("method {method_name}");
+            for attr in &method.attributes {
+                match &attr.info {
+                    AttributeInfo::Code {
+                        max_stack,
+                        max_locals,
+                        code,
+                        exception_table,
+                        attributes,
+                    } => {
+                        println!(
+                            "  attribute Code max_stack={max_stack} max_locals={max_locals}"
+                        );
+
+                        for attr in attributes {
+                            match attr.info {
+                                // TODO: We could use it
+                                AttributeInfo::LineNumberTable( .. ) => continue,
+
+                                _ => todo!(),
+                            }
+                        }
+
+                        for instruction in code {
+                            print!("    ");
+                            match instruction {
+                                Instruction::Nop => println!("nop"),
+                                Instruction::Return => println!("return"),
+                                Instruction::Ldc(constant) => {
+                                    print!("ldc {constant}");
+                                    if (*constant as usize) < self.constant_pool.len() {
+                                        print!(" // ");
+                                        dump_constant(&self.constant_pool, &self.constant_pool[*constant as usize - 1]);
+                                    } else {
+                                        println!(" // couldn't resolve constant");
+                                    }
+                                },
+                                Instruction::ALoad(reference) => println!("aload {reference}"),
+                                Instruction::GetStatic(index) => {
+                                    print!("getstatic {index}");
+                                    if (*index as usize) < self.constant_pool.len() {
+                                        print!(" // ");
+                                        dump_constant(&self.constant_pool, &self.constant_pool[*index as usize - 1]);
+                                    } else {
+                                        println!(" // couldn't resolve constant");
+                                    }
+                                }
+                                Instruction::InvokeSpecial(method) => {
+                                    print!("invokespecial {method}");
+                                    if (*method as usize) < self.constant_pool.len() {
+                                        print!(" // ");
+                                        dump_constant(&self.constant_pool, &self.constant_pool[*method as usize - 1]);
+                                    } else {
+                                        println!(" // couldn't resolve constant");
+                                    }
+                                }
+                                Instruction::InvokeVirtual(method) => {
+                                    print!("invokevirtual {method}");
+                                    if (*method as usize) < self.constant_pool.len() {
+                                        print!(" // ");
+                                        dump_constant(&self.constant_pool, &self.constant_pool[*method as usize - 1]);
+                                    } else {
+                                        println!(" // couldn't resolve constant");
+                                    }
+                                }
+                            }
+                        }
+
+                        if exception_table.len() > 0 {
+                            todo!();
+                        }
+                    }
+                    _ => todo!(),
+                }
+            }
+        }
     }
+}
+
+pub fn dump_constant(constant_pool: &Vec<ConstantPoolInfo>,  constant: &ConstantPoolInfo) {
+            match constant {
+                ConstantPoolInfo::FieldRef {
+                    class_index,
+                    name_and_type_index,
+                } => {
+                    let ConstantPoolInfo::Class { name_index } =
+                        constant_pool[*class_index as usize - 1]
+                    else {
+                        unreachable!("Field.class_index must point to class")
+                    };
+                    let class_name = constant_pool[name_index as usize - 1].utf8().unwrap();
+
+                    let ConstantPoolInfo::NameAndType {
+                        name_index,
+                        descriptor_index,
+                    } = constant_pool[*name_and_type_index as usize - 1]
+                    else {
+                        unreachable!("Field.name_and_type_index must point to NameAndType");
+                    };
+                    let field_name = constant_pool[name_index as usize - 1].utf8().unwrap();
+
+                    let ConstantPoolInfo::Utf8(descriptor) =
+                        &constant_pool[descriptor_index as usize - 1]
+                    else {
+                        unreachable!("NameAndType.descriptor_index must point to the Utf8");
+                    };
+
+                    println!(
+                        "fieldref class={class_name} field={field_name} descriptor={descriptor:?}"
+                    );
+                }
+                ConstantPoolInfo::NameAndType {
+                    name_index,
+                    descriptor_index,
+                } => {
+                    let name = constant_pool[*name_index as usize - 1].utf8().unwrap();
+
+                    let ConstantPoolInfo::Utf8(descriptor) =
+                        &constant_pool[*descriptor_index as usize - 1]
+                    else {
+                        unreachable!("NameAndType.descriptor_index must point to the Utf8");
+                    };
+
+                    println!("name={name} type={descriptor:?}");
+                }
+                ConstantPoolInfo::MethodRef {
+                    class_index,
+                    name_and_type_index,
+                } => {
+                    let ConstantPoolInfo::Class { name_index } =
+                        constant_pool[*class_index as usize - 1]
+                    else {
+                        unreachable!("MethodRef.class_index must point to class")
+                    };
+                    let class_name = constant_pool[name_index as usize - 1].utf8().unwrap();
+
+                    let ConstantPoolInfo::NameAndType {
+                        name_index,
+                        descriptor_index,
+                    } = constant_pool[*name_and_type_index as usize - 1]
+                    else {
+                        unreachable!("Method.name_and_type_index must point to NameAndType");
+                    };
+                    let method_name = constant_pool[name_index as usize - 1].utf8().unwrap();
+
+                    let ConstantPoolInfo::Utf8(descriptor) =
+                        &constant_pool[descriptor_index as usize - 1]
+                    else {
+                        unreachable!("NameAndType.descriptor_index must point to the Utf8");
+                    };
+
+                    println!("methodref class={class_name} method={method_name} descriptor={descriptor:?}");
+                }
+                ConstantPoolInfo::Class { name_index } => {
+                    let name = constant_pool[*name_index as usize - 1].utf8().unwrap();
+                    println!("class {name}");
+                }
+                ConstantPoolInfo::String { string_index } => {
+                    let str = constant_pool[*string_index as usize - 1]
+                        .utf8()
+                        .unwrap();
+                    println!("string {str:?}");
+                }
+                ConstantPoolInfo::Utf8(str) => println!("{str:?}"),
+            }
 }
