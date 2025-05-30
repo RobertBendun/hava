@@ -132,7 +132,7 @@ where
             };
 
         if let AttributeInfo::Uncrecognized(data) = &attribute.info {
-            if let Some(info) = AttributeInfo::from(&constant_pool, &name, data.as_slice())? {
+            if let Some(info) = AttributeInfo::from(constant_pool, name, data.as_slice())? {
                 attribute.info = info;
             }
         }

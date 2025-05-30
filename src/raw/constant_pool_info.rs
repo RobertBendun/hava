@@ -42,7 +42,7 @@ impl ConstantPoolInfo {
     pub fn from(file: &mut File) -> std::io::Result<ConstantPoolInfo> {
         let tag = file.read_u1()?;
         if let Ok(tag) = ConstantPoolInfoTag::try_from(tag) {
-            return Ok(match tag {
+            Ok(match tag {
                 ConstantPoolInfoTag::Class => ConstantPoolInfo::Class {
                     name_index: file.read_u2()?,
                 },
@@ -69,7 +69,7 @@ impl ConstantPoolInfo {
                     // strings
                     ConstantPoolInfo::Utf8(unsafe { String::from_utf8_unchecked(buf) })
                 }
-            });
+            })
         } else {
             println!("Skipping tag {tag} due to not beeing implemented yet");
             panic!();
