@@ -99,6 +99,20 @@ impl Class {
                             match instruction {
                                 Instruction::Nop => println!("nop"),
                                 Instruction::Return => println!("return"),
+                                Instruction::IStore0 => println!("istore_0"),
+                                Instruction::IStore1 => println!("istore_1"),
+                                Instruction::IStore2 => println!("istore_2"),
+                                Instruction::IStore3 => println!("istore_3"),
+                                Instruction::ALoad0 => println!("aload_0"),
+                                Instruction::ALoad1 => println!("aload_1"),
+                                Instruction::ALoad2 => println!("aload_2"),
+                                Instruction::ALoad3 => println!("aload_3"),
+                                Instruction::ILoad0 => println!("iload_0"),
+                                Instruction::ILoad1 => println!("iload_1"),
+                                Instruction::ILoad2 => println!("iload_2"),
+                                Instruction::ILoad3 => println!("iload_3"),
+                                Instruction::IAdd => println!("iadd"),
+                                Instruction::BiPush(b) => println!("bipush {b} // {b:#04x}"),
                                 Instruction::Ldc(constant) => {
                                     print!("ldc {constant}");
                                     if (*constant as usize) < self.constant_pool.len() {
@@ -108,7 +122,6 @@ impl Class {
                                         println!(" // couldn't resolve constant");
                                     }
                                 },
-                                Instruction::ALoad(reference) => println!("aload {reference}"),
                                 Instruction::GetStatic(index) => {
                                     print!("getstatic {index}");
                                     if (*index as usize) < self.constant_pool.len() {
