@@ -71,7 +71,12 @@ impl Class {
             let method_name = self.constant_pool[method.name_index as usize - 1]
                 .utf8()
                 .expect("Method should be pointing to valid method name");
-            println!("method {method_name}");
+
+            let access_flags = method.access_flags;
+
+            println!("method {method_name} access={access_flags}");
+
+
             for attr in &method.attributes {
                 match &attr.info {
                     AttributeInfo::Code {
